@@ -85,3 +85,52 @@ Clarinet.test({
     assertEquals(batchInfo['current-owner'], distributor.address);
   }
 });
+
+Clarinet.test({
+  name: "Batch status update test",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const manufacturer = accounts.get('wallet_1')!;
+    
+    // Register manufacturer
+    let setup = chain.mineBlock([
+      Tx.contractCall('med_trace', 'register-participant',
+        [types.ascii("manufacturer")],
+        manufacturer.address)
+    ]);
+    
+    // Create batch
+    let batch = chain.mineBlock([
+      Tx.contractCall('med_trace', 'create-batch',
+        [
+          types.ascii("Aspirin"),
+          types.ascii("BATCH001"),
+          types.uint(100000)
+        ],
+        manufacturer.address)
+    ]);
+    
+    let batchId = batch.receipts[0].result.expectOk();
+    
+    // Update status
+    let update = chain.mineBlock([
+      Tx.contractCall('med_trace', 'update-batch-status',
+        [
+          batchId,
+          types.ascii("recalled")
+        ],
+        manufacturer.address)
+    ]);
+    
+    update.receipts[0].result.expectOk();
+    
+    // Verify status
+    let verify = chain.mineBlock([
+      Tx.contractCall('med_trace', 'get-batch-info',
+        [batchId],
+        manufacturer.address)
+    ]);
+    
+    let batchInfo = verify.receipts[0].result.expectOk().expectSome();
+    assertEquals(batchInfo['status'], "recalled");
+  }
+});
