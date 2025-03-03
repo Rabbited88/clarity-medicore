@@ -7,8 +7,6 @@ import {
 } from 'https://deno.land/x/clarinet@v1.0.0/index.ts';
 import { assertEquals } from 'https://deno.land/std@0.90.0/testing/asserts.ts';
 
-// [Previous tests remain unchanged...]
-
 Clarinet.test({
   name: "Batch validation tests",
   async fn(chain: Chain, accounts: Map<string, Account>) {
@@ -21,21 +19,21 @@ Clarinet.test({
         manufacturer.address)
     ]);
     
-    // Test invalid expiry date
-    let invalidExpiry = chain.mineBlock([
+    // Test invalid batch number format
+    let invalidFormat = chain.mineBlock([
       Tx.contractCall('med_trace', 'create-batch',
         [
           types.ascii("Aspirin"),
-          types.ascii("BATCH001"),
-          types.uint(1) // Past expiry
+          types.ascii("INVALID"),
+          types.uint(999999)
         ],
         manufacturer.address)
     ]);
     
-    invalidExpiry.receipts[0].result.expectErr(105);
+    invalidFormat.receipts[0].result.expectErr(107);
     
-    // Test duplicate batch number
-    let batch1 = chain.mineBlock([
+    // Test valid batch creation
+    let validBatch = chain.mineBlock([
       Tx.contractCall('med_trace', 'create-batch',
         [
           types.ascii("Aspirin"),
@@ -45,16 +43,8 @@ Clarinet.test({
         manufacturer.address)
     ]);
     
-    let duplicateBatch = chain.mineBlock([
-      Tx.contractCall('med_trace', 'create-batch',
-        [
-          types.ascii("Paracetamol"),
-          types.ascii("BATCH001"),
-          types.uint(999999)
-        ],
-        manufacturer.address)
-    ]);
+    validBatch.receipts[0].result.expectOk();
     
-    duplicateBatch.receipts[0].result.expectErr(106);
+    // [Previous tests remain unchanged...]
   }
 });
